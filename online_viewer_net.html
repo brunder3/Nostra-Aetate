@@ -2,491 +2,565 @@
 <html lang="de">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Nostra aetate – Kurz & klar (Präsentationsmodus + Quiz)</title>
-  <meta name="description" content="Nostra aetate (1965) verständlich erklärt – mit Präsentationsmodus für Referate, längeren Stichpunkten (Option B) und kleinem Quiz." />
-
-  <!-- Favicon als eingebettetes SVG (passt sich currentColor an) -->
-  <link rel="icon" href='data:image/svg+xml;utf8,
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-    <rect width="64" height="64" rx="14" ry="14" fill="%230b0d10"/>
-    <g fill="none" stroke="%237aa2ff" stroke-width="3" stroke-linecap="round">
-      <circle cx="32" cy="32" r="16"/>
-      <path d="M16 32h32M32 16v32"/>
-      <path d="M24 32c0 7 3.6 12 8 12s8-5 8-12-3.6-12-8-12-8 5-8 12z"/>
-    </g>
-  </svg>'>
-
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Neon Dash Infinity</title>
+  <meta name="description" content="Schnelle Browser-Variante im Geometry-Dash-Stil mit prozeduralen Patterns, Dash-Modus und Boss-Phase." />
   <style>
     :root{
-      --bg:#0b0d10; --surface:#12161b; --surface-2:#171c22;
-      --text:#e7edf6; --text-dim:#a9b4c0;
-      --brand:#7aa2ff; --brand-2:#6ee7d2; --accent:#b388ff;
-      --ok:#7bd88f; --warn:#ffcf6e; --danger:#ff8b8b;
-      --radius:16px; --shadow:0 10px 30px rgba(0,0,0,.35); --maxw:1100px;
+      --bg:#070910;
+      --panel:#101522;
+      --panel-2:#171f31;
+      --text:#eef2ff;
+      --muted:#95a3c7;
+      --accent:#64f7ff;
+      --accent2:#a855f7;
+      --good:#6df6a8;
+      --danger:#ff6f91;
     }
-    :root[data-theme="light"]{
-      --bg:#f8fafc; --surface:#fff; --surface-2:#f1f5f9;
-      --text:#0b1220; --text-dim:#475569; --brand:#1d4ed8; --brand-2:#0ea5a4; --accent:#7c3aed;
-      --shadow:0 10px 30px rgba(2,6,23,.1);
-    }
+    *{box-sizing:border-box}
     html,body{height:100%}
     body{
-      margin:0; background:
-        radial-gradient(1200px 800px at 80% -10%, rgba(122,162,255,.15), transparent 60%),
-        radial-gradient(900px 600px at -10% 20%, rgba(110,231,210,.12), transparent 60%),
+      margin:0;
+      color:var(--text);
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+      background:
+        radial-gradient(circle at 20% 10%, rgba(100,247,255,.18), transparent 28%),
+        radial-gradient(circle at 80% 90%, rgba(168,85,247,.22), transparent 35%),
         var(--bg);
-      color:var(--text); font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
-      line-height:1.75;
+      display:grid;
+      place-items:center;
+      overflow:hidden;
     }
-    .wrapper{max-width:var(--maxw); margin:0 auto; padding:24px}
-    .card{background:linear-gradient(180deg,var(--surface),var(--surface-2)); border:1px solid rgba(255,255,255,.06); border-radius:var(--radius); box-shadow:var(--shadow)}
-    header{position:sticky; top:0; z-index:50; backdrop-filter:saturate(140%) blur(10px);
-      background:color-mix(in srgb,var(--bg), transparent 25%); border-bottom:1px solid rgba(255,255,255,.06)}
-    .nav{display:flex; align-items:center; gap:12px; justify-content:space-between; max-width:var(--maxw); margin:0 auto; padding:12px 24px}
-    .logo{display:flex; align-items:center; gap:10px; text-decoration:none; color:var(--text); font-weight:700}
-    .logo svg{width:20px; height:20px; display:block}
-    .logo span{letter-spacing:.2px}
-    nav a{color:var(--text-dim); text-decoration:none; padding:8px 10px; border-radius:10px}
-    nav a:hover{color:var(--text); background:rgba(255,255,255,.06)}
-    .actions{display:flex; gap:10px; align-items:center}
-    .btn{appearance:none; border:0; cursor:pointer; border-radius:12px; padding:10px 14px; font-weight:700;
-      background:linear-gradient(135deg, color-mix(in srgb,var(--brand),transparent 10%), color-mix(in srgb,var(--brand-2),transparent 10%)); color:#fff; box-shadow:var(--shadow)}
-    .btn.ghost{background:transparent; color:var(--text); border:1px solid rgba(255,255,255,.12)}
-    .hero{display:grid; grid-template-columns:1.05fr .95fr; gap:24px; align-items:center; padding:48px 24px 16px}
-    .badge{display:inline-flex; gap:8px; align-items:center; background:rgba(122,162,255,.12); border:1px solid rgba(122,162,255,.25);
-      color:var(--text); padding:6px 10px; border-radius:999px; font-size:12px}
-    h1{font-size:clamp(28px,4vw,44px); line-height:1.1; margin:12px 0}
-    p.lead{color:var(--text-dim); font-size:clamp(16px,2.2vw,18px)}
-    .hero-art{position:relative; aspect-ratio:1.2/1; border-radius:24px; overflow:hidden;
-      background:radial-gradient(60% 60% at 30% 30%, rgba(179,136,255,.25), transparent 60%),
-                 radial-gradient(60% 60% at 70% 70%, rgba(110,231,210,.25), transparent 60%),
-                 linear-gradient(180deg,var(--surface),var(--surface-2));
-      border:1px solid rgba(255,255,255,.08)}
-    section{margin:24px 0} section .card{padding:22px}
-    h2{margin:0 0 10px; font-size:clamp(22px,2.8vw,28px)} h3{margin:12px 0 6px; font-size:18px}
-    .kicker{color:var(--text-dim); font-weight:700; text-transform:uppercase; font-size:12px; letter-spacing:.12em}
-    ul{margin:0; padding-left:18px}
-    .note{font-size:14px; color:var(--text-dim)}
-    .source{display:grid; gap:8px; padding:12px; border-radius:12px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08)}
-    .source a{color:var(--brand); text-decoration:none} .source a:hover{text-decoration:underline}
-    footer{color:var(--text-dim); text-align:center; padding:28px 0 60px}
-    .fab{position:fixed; right:18px; bottom:18px; z-index:40; display:flex; flex-direction:column; gap:10px}
-    .sr-only{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0}
-
-    /* Quiz (dezent) */
-    .quiz-card{display:grid; gap:16px}
-    .q{padding:14px; border-radius:12px; border:1px solid rgba(255,255,255,.08); background:rgba(255,255,255,.03)}
-    .q h4{margin:0 0 8px; font-size:16px}
-    .opts{display:grid; gap:8px; margin-top:8px}
-    .opt{
-      display:flex; gap:10px; align-items:center;
-      padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,.08);
-      background:rgba(255,255,255,.02); cursor:pointer;
+    .wrap{
+      width:min(1080px,96vw);
+      height:min(690px,95vh);
+      background:linear-gradient(165deg,var(--panel),var(--panel-2));
+      border:1px solid rgba(255,255,255,.09);
+      border-radius:20px;
+      box-shadow:0 20px 50px rgba(0,0,0,.45);
+      padding:14px;
+      display:grid;
+      grid-template-rows:auto 1fr auto;
+      gap:10px;
     }
-    .opt input{accent-color:var(--brand)}
-    .opt.correct{border-color: rgba(123,216,143,.9); background: rgba(123,216,143,.12)}
-    .opt.wrong{border-color: rgba(255,139,139,.9); background: rgba(255,139,139,.12)}
-    .feedback{font-size:13px; color:var(--text-dim); margin-top:6px}
-
-    /* ----------------- Präsentationsmodus ----------------- */
-    :root[data-present="on"] body{line-height:1.6}
-    :root[data-present="on"] .wrapper{max-width:1200px}
-    :root[data-present="on"] .deck{display:none}
-    :root[data-present="on"] .deck.active{display:block}
-    :root[data-present="on"] h2{font-size:clamp(28px,4.5vw,48px)}
-    :root[data-present="on"] .deck ul{font-size:clamp(18px,2.2vw,28px)}
-    :root[data-present="on"] .deck li{margin:12px 0}
-    :root[data-present="on"] header nav{display:none}
-    :root[data-present="on"] .present-controls{display:flex}
-    .present-controls{
-      position:fixed; left:50%; transform:translateX(-50%);
-      bottom:18px; z-index:60; display:none; gap:10px;
+    .hud{display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center}
+    .pill{
+      border:1px solid rgba(255,255,255,.1);
+      background:rgba(255,255,255,.04);
+      border-radius:999px;
+      padding:6px 12px;
+      font-weight:700;
+      font-size:14px;
     }
-    .present-controls .btn{padding:12px 18px; border-radius:999px}
-    .hint{font-size:13px; color:var(--text-dim); margin-top:8px}
-
-    @media (max-width:900px){.hero{grid-template-columns:1fr} nav{display:none}}
-    @media print{
-      header,.fab,.present-controls{display:none!important} body{background:#fff; color:#000}
-      .card{break-inside:avoid; box-shadow:none; border:1px solid #ddd}
-      a{color:#000; text-decoration:underline}
+    .accent{color:var(--accent)}
+    .canvas-box{
+      border-radius:16px;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.08);
+      background:#0a0f1a;
+      position:relative;
     }
+    canvas{display:block;width:100%;height:100%}
+    .overlay{
+      position:absolute;inset:0;
+      display:grid;place-items:center;
+      text-align:center;
+      background:linear-gradient(rgba(2,4,11,.2),rgba(2,4,11,.65));
+      transition:opacity .25s;
+    }
+    .card{
+      width:min(560px,92%);
+      background:rgba(9,13,24,.85);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:18px;
+      padding:20px;
+      backdrop-filter:blur(4px);
+    }
+    h1{margin:0 0 8px;font-size:clamp(22px,3vw,34px)}
+    p{margin:8px 0;color:var(--muted);line-height:1.45}
+    .controls{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:14px}
+    button{
+      border:0;
+      background:linear-gradient(140deg,var(--accent),var(--accent2));
+      color:#080a15;
+      border-radius:10px;
+      padding:10px 14px;
+      font-weight:800;
+      cursor:pointer;
+    }
+    button.secondary{
+      background:rgba(255,255,255,.08);
+      color:var(--text);
+      border:1px solid rgba(255,255,255,.14);
+    }
+    .footer{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:0 4px}
+    .hidden{opacity:0;pointer-events:none}
   </style>
 </head>
 <body>
-<header>
-  <div class="nav">
-    <a class="logo" href="#top" aria-label="Startseite">
-      <!-- Minimalistisches Logo: Globus + feines Kreuz, nutzt currentColor -->
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-          <circle cx="12" cy="12" r="7.5"/>
-          <path d="M4.5 12h15M12 4.5v15"/>
-          <path d="M8.5 12c0 3.3 1.7 5.7 3.5 5.7s3.5-2.4 3.5-5.7-1.7-5.7-3.5-5.7-3.5 2.4-3.5 5.7z"/>
-        </g>
-      </svg>
-      <span>Nostra aetate</span>
-    </a>
-    <nav aria-label="Abschnitte">
-      <a href="#kurz">Kurzüberblick</a>
-      <a href="#entstehung">Entstehung</a>
-      <a href="#anliegen">Anliegen & Inhalte</a>
-      <a href="#judentum">Kirche & Judentum</a>
-      <a href="#wirkung">Wirkung</a>
-      <a href="#mythen">Missverständnisse</a>
-      <a href="#fazit">Fazit</a>
-      <a href="#quiz">Quiz</a>
-      <a href="#quellen">Quellen</a>
-    </nav>
-    <div class="actions">
-      <button class="btn ghost" id="themeToggle" aria-label="Design umschalten">🌙 / ☀️</button>
-      <button class="btn ghost" id="presentToggle" aria-label="Präsentationsmodus">🎤 Präsentation</button>
-      <button class="btn" id="printBtn" title="Als PDF speichern">PDF</button>
+  <div class="wrap">
+    <div class="hud">
+      <div class="pill">Neon <span class="accent">Dash Infinity</span></div>
+      <div class="pill">Score: <span id="score">0</span></div>
+      <div class="pill">Best: <span id="best">0</span></div>
+      <div class="pill">Level: <span id="stage">1</span></div>
+    </div>
+    <div class="canvas-box">
+      <canvas id="game" width="1200" height="600"></canvas>
+      <div class="overlay" id="overlay">
+        <div class="card">
+          <h1>Geometry Dash, aber wilder ⚡</h1>
+          <p>Prozedurale Abschnitte, Tempo-Boosts, Dash-Portal und Boss-Laser. Springe perfekt im Takt und überlebe so lange wie möglich.</p>
+          <p><strong>Steuerung:</strong> Leertaste / Klick / Touch = springen. Halten im Dash-Modus = schweben. <strong>R</strong> für Neustart.</p>
+          <div class="controls">
+            <button id="startBtn">Run starten</button>
+            <button id="audioBtn" class="secondary">Audio: an</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="footer">
+      <span>Features: Dynamic Difficulty · Ghost Trail · Boss-Patterns · Hit-Pulse FX</span>
+      <span id="state">Bereit.</span>
     </div>
   </div>
-</header>
-
-<main id="top" class="wrapper">
-  <section class="hero">
-    <div>
-      <span class="badge">Erklärung des Zweiten Vatikanischen Konzils • 28. Okt. 1965</span>
-      <h1>Nostra <em>aetate</em> – kurz & klar</h1>
-      <p class="lead">Die Kirche setzt auf Respekt, Dialog und Zusammenarbeit mit anderen Religionen. Gleichzeitig sagt sie Antisemitismus und jeder Form religiöser Diskriminierung klar ab.</p>
-      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px">
-        <a class="btn ghost" href="#kurz">Schnellstart</a>
-        <a class="btn ghost" href="#quiz">Zum Quiz</a>
-      </div>
-    </div>
-    <div class="hero-art" aria-hidden="true"></div>
-  </section>
-
-  <!-- FOLIEN-SEKTIONEN -->
-  <section id="kurz" class="deck">
-    <div class="card">
-      <div class="kicker">Essenz</div>
-      <h2>Kurzüberblick</h2>
-      <ul>
-        <li>Titel: Nostra aetate bedeutet „In unserer Zeit“. Der Name macht klar, dass das Dokument Antworten auf die religiöse Begegnung der Gegenwart geben will.</li>
-        <li>Charakter: Es ist eine pastorale Erklärung und kein Dogma. Das heißt: Sie gibt praxisnahe Leitlinien, ohne neue Glaubenssätze zu definieren.</li>
-        <li>Kernhaltung: Die Kirche achtet das Wahre und Heilige auch außerhalb des Christentums. Diese Anerkennung relativiert nicht den eigenen Glauben, sondern zeigt Fairness und Lernbereitschaft.</li>
-        <li>Leitweg: Dialog & Zusammenarbeit stehen im Mittelpunkt. Dabei bleibt die eigene Identität erhalten und wird nicht „aufgelöst“.</li>
-        <li>Absage: Antisemitismus, Kollektivschuld und jede religiöse Diskriminierung werden ausdrücklich verworfen. Der Schutz der Menschenwürde gilt als Maßstab.</li>
-      </ul>
-      <p class="hint">Übergang: Nach dem Überblick folgt die kurze Entstehungsgeschichte.</p>
-    </div>
-  </section>
-
-  <section id="entstehung" class="deck">
-    <div class="card">
-      <div class="kicker">Geschichte</div>
-      <h2>Warum „in unserer Zeit“ nötig war</h2>
-      <ul>
-        <li>Kontext 20. Jh.: Weltkriege, Shoah und Entkolonialisierung prägten ein neues Bewusstsein. Diese Erfahrungen machten deutlich, dass alte Abwertungen überwunden werden müssen.</li>
-        <li>Neue Nachbarschaft: Migration und Pluralität führten zu mehr direktem Kontakt zwischen Religionen. Dadurch entstanden Chancen für Zusammenarbeit und Spannungen, die geklärt werden mussten.</li>
-        <li>Selbstkritik: Die Kirche erkannte antijüdische Sprachmuster in Traditionen. Sie wollte Verantwortung übernehmen und eine glaubwürdige Korrektur festhalten.</li>
-        <li>Prozess: Zwischen 1962–1965 gab es mehrere Entwürfe und Beratungen. Impulse kamen aus Theologie, ökumenischem Austausch und jüdisch-christlichen Begegnungen.</li>
-        <li>Beschluss: Am 28. Oktober 1965 wurde die Erklärung verabschiedet. Sie markiert einen Wendepunkt: weg von Abgrenzung, hin zu respektvoller Begegnung.</li>
-      </ul>
-    </div>
-  </section>
-
-  <section id="anliegen" class="deck">
-    <div class="card">
-      <div class="kicker">Kernideen</div>
-      <h2>Anliegen & Inhalte</h2>
-      <ul>
-        <li>Menschenbild: Alle Menschen suchen Sinn und Wahrheit. Religionen sind ernsthafte Antworten auf diese Fragen und verdienen daher faire Würdigung.</li>
-        <li>Anerkennung: Es gibt Wahrheit/Heiligkeit auch außerhalb der Kirche. Diese Einsicht öffnet Türen für Austausch und verhindert ein pauschales Abwerten.</li>
-        <li>Dialog mit Profil: Dialog heißt Austausch auf Augenhöhe. Dabei bleibt die christliche Identität unverkürzt und wird klar benannt.</li>
-        <li>Freiheit: Gewissensfreiheit und Zeugnis ohne Zwang sind verbindlich. Überredung oder Druck widersprechen dem Evangelium und der Menschenwürde.</li>
-        <li>Gemeinsame Ethik: Die Goldene Regel, Menschenwürde sowie Frieden & Gerechtigkeit verbinden. Auf dieser Basis kann man praktisch zusammenarbeiten.</li>
-        <li>Praxis: Bildung, soziale Projekte und Einsatz für Menschenrechte werden empfohlen. So wird der Dialog sichtbar und wirksam im Alltag.</li>
-      </ul>
-    </div>
-  </section>
-
-  <section id="judentum" class="deck">
-    <div class="card">
-      <div class="kicker">Schwerpunkt</div>
-      <h2>Kirche & Judentum – zentraler Bezug</h2>
-      <ul>
-        <li>Wurzeln: Jesus und die Apostel sind Juden; die Kirche teilt die heiligen Schriften (Tanach/AT). Wer das Christentum verstehen will, muss seine jüdischen Wurzeln ernst nehmen.</li>
-        <li>Bleibende Erwählung: Gott bleibt seinem Bund mit Israel treu. Daraus folgt Respekt vor jüdischem Glauben, nicht seine „Ersetzung“ durch die Kirche.</li>
-        <li>Klare Korrektur: Eine Kollektivschuld am Tod Jesu wird ausdrücklich verworfen. Das Leiden Jesu darf nicht gegen „die Juden“ gewendet werden.</li>
-        <li>Verurteilung: Antisemitismus widerspricht Evangelium und Menschenwürde. Christen sind aufgerufen, aktiv dagegen einzutreten und Feindbilder zu überwinden.</li>
-        <li>Konsequenzen: Erinnerungskultur (z. B. 27. Januar) und Bildung gegen Mythen sind Pflicht. Zusammenarbeit mit jüdischen Gemeinden stärkt Vertrauen und Verständigung.</li>
-      </ul>
-    </div>
-  </section>
-
-  <section id="wirkung" class="deck">
-    <div class="card">
-      <div class="kicker">Seit 1965</div>
-      <h2>Wirkung – sichtbar verändert</h2>
-      <ul>
-        <li>Institutionen: Es entstanden Dialogkommissionen (jüdisch-christlich, christlich-muslimisch). Sie schaffen verlässliche Strukturen für Begegnung und gemeinsame Stellungnahmen.</li>
-        <li>Bildung: Lehrpläne und Schulbücher wurden überarbeitet. Sprache in Liturgie und Katechese wurde sensibler und vermeidet pauschale Abwertungen.</li>
-        <li>Gesellschaft: Religionsvertreter treten gemeinsam gegen Hasskriminalität und Rassismus auf. Das stärkt eine Kultur des Respekts im öffentlichen Raum.</li>
-        <li>Lokal: Stolpersteine, Gedenkveranstaltungen und Stadtführungen machen Geschichte greifbar. So wird Erinnerung zu einem Lernort für Gegenwart und Zukunft.</li>
-        <li>Kompetenzen: Dialogfähigkeit und Demokratiekompetenz wachsen durch Übung. Wer fair spricht und zuhört, schützt Menschenrechte aktiv mit.</li>
-      </ul>
-    </div>
-  </section>
-
-  <section id="mythen" class="deck">
-    <div class="card">
-      <div class="kicker">Klarstellungen</div>
-      <h2>Häufige Missverständnisse</h2>
-      <ul>
-        <li>„Dialog = alles gleich“: Das stimmt nicht. Dialog findet mit klarer Überzeugung statt und will gemeinsam Wahrheit und Frieden fördern.</li>
-        <li>„AT ist überholt“: Falsch. Die hebräischen Schriften bleiben Wort Gottes und sind Grundlage des christlichen Verstehens.</li>
-        <li>„Juden tragen Gesamtschuld“: Ebenfalls falsch. Kollektivschuld wird verworfen, weil sie der Botschaft Jesu und der Würde des Menschen widerspricht.</li>
-        <li>„Respekt beendet Mission“: Nein. Zeugnis geschieht ohne Zwang und achtet das Gewissen der anderen – Respekt und Glaube schließen sich nicht aus.</li>
-      </ul>
-    </div>
-  </section>
-
-  <section id="fazit" class="deck">
-    <div class="card">
-      <div class="kicker">Schluss</div>
-      <h2>Fazit – Merksatz</h2>
-      <ul>
-        <li>Formel: Respekt + Dialog + klare Grenzen gegen Hass fassen Nostra aetate treffend zusammen. So bleibt der Glaubensdialog zugleich ehrlich und menschenfreundlich.</li>
-        <li>Heute wichtig: Faire Sprache und gemeinsame Werte ermöglichen ein friedliches Miteinander. Das gilt in Schule, Gemeinde und öffentlicher Debatte gleichermaßen.</li>
-        <li>Weiterdenken: Wo können wir selbst Zusammenarbeit starten? Kleine Projekte vor Ort zeigen, dass Dialog nicht nur Theorie, sondern gelebte Praxis ist.</li>
-      </ul>
-      <p class="hint">Tipp: Mit einer kurzen Frage ans Publikum überleiten und dann das Quiz starten.</p>
-    </div>
-  </section>
-
-  <!-- QUIZ -->
-  <section id="quiz" class="deck">
-    <div class="card quiz-card">
-      <div class="kicker">Kleines Quiz</div>
-      <h2>Check dein Wissen (10 Fragen · Level 1)</h2>
-      <p class="note">Wähle pro Frage eine Antwort. Ergebnis und Erklärung erscheinen sofort, damit du direkt siehst, was sitzt.</p>
-      <div id="quizContainer"></div>
-      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center">
-        <button class="btn" id="checkBtn">Prüfen</button>
-        <button class="btn ghost" id="resetBtn">Zurücksetzen</button>
-        <span id="scoreBox" class="badge" aria-live="polite">Score: 0/0</span>
-      </div>
-      <p id="overallFeedback" class="feedback" aria-live="polite"></p>
-    </div>
-  </section>
-
-  <section id="quellen" class="deck">
-    <div class="card">
-      <div class="kicker">Weiterlesen</div>
-      <h2>Quellen & offizielle Texte</h2>
-      <div class="source">
-        <strong>Originaltext (DE):</strong>
-        <a href="https://www.vatican.va/archive/hist_councils/ii_vatican_council/documents/vat-ii_decl_19651028_nostra-aetate_ge.html" target="_blank" rel="noopener">Vatican.va – Nostra aetate</a>
-      </div>
-      <div class="source">
-        <strong>Materialien:</strong>
-        <a href="https://www.dbk.de" target="_blank" rel="noopener">Deutsche Bischofskonferenz</a> ·
-        <a href="https://www.oekumene-ack.de/" target="_blank" rel="noopener">ACK in Deutschland</a>
-      </div>
-    </div>
-  </section>
-</main>
-
-<!-- Floating Buttons -->
-<div class="fab" aria-live="polite">
-  <button class="btn ghost" id="toTop" title="Nach oben">↑</button>
-  <button class="btn" id="printBtn" title="Seite drucken / als PDF speichern">PDF</button>
-</div>
-
-<!-- Präsentations-Steuerung -->
-<div class="present-controls" id="presentControls">
-  <button class="btn ghost" id="prevBtn" aria-label="Zurück">⟵ Zurück</button>
-  <button class="btn" id="nextBtn" aria-label="Weiter">Weiter ⟶</button>
-</div>
 
 <script>
-  // Smooth scroll (nur im Normalmodus)
-  document.querySelectorAll('a[href^="#"]').forEach(a=>{
-    a.addEventListener('click', e=>{
-      const id=a.getAttribute('href'); const el=document.querySelector(id);
-      if(el && document.documentElement.getAttribute('data-present')!=='on'){
-        e.preventDefault(); el.scrollIntoView({behavior:'smooth', block:'start'}); history.pushState(null,'',id);
-      }
-    });
-  });
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const overlay = document.getElementById('overlay');
+  const scoreEl = document.getElementById('score');
+  const bestEl = document.getElementById('best');
+  const stageEl = document.getElementById('stage');
+  const stateEl = document.getElementById('state');
+  const startBtn = document.getElementById('startBtn');
+  const audioBtn = document.getElementById('audioBtn');
 
-  // Buttons
-  document.getElementById('toTop').addEventListener('click', ()=> window.scrollTo({top:0, behavior:'smooth'}));
-  document.getElementById('printBtn').addEventListener('click', ()=> window.print());
+  const W = canvas.width;
+  const H = canvas.height;
+  const GROUND = H - 110;
+  let running = false;
+  let muted = false;
+  let t = 0;
+  let pulse = 0;
+  let score = 0;
+  let best = Number(localStorage.getItem('neonDashBest') || 0);
+  let patternCooldown = 0;
+  let rngSeed = Math.random() * 99999;
 
-  // Theme toggle
-  const root=document.documentElement;
-  const themeKey='na_theme';
-  const savedTheme=localStorage.getItem(themeKey);
-  if(savedTheme){ root.setAttribute('data-theme', savedTheme); } else { root.setAttribute('data-theme','dark'); }
-  document.getElementById('themeToggle').addEventListener('click', ()=>{
-    const cur=root.getAttribute('data-theme')==='light'?'dark':'light';
-    root.setAttribute('data-theme', cur); localStorage.setItem(themeKey, cur);
-  });
+  bestEl.textContent = best;
 
-  // Präsentationsmodus
-  const presentKey='na_present';
-  const presentToggle=document.getElementById('presentToggle');
-  const presentControls=document.getElementById('presentControls');
-  const decks=[...document.querySelectorAll('.deck')];
-  let slide=0;
+  const input = { down:false };
+  const stars = Array.from({length:90}, (_,i) => ({
+    x: Math.random()*W,
+    y: Math.random()*H,
+    z: 0.2 + Math.random()*1.4,
+    tw: Math.random()*Math.PI*2,
+    p: i%3
+  }));
 
-  function setSlide(i){
-    slide=Math.max(0, Math.min(i, decks.length-1));
-    decks.forEach((sec,idx)=> sec.classList.toggle('active', idx===slide));
-    if(root.getAttribute('data-present')==='on'){
-      location.hash = decks[slide].id ? ('#'+decks[slide].id) : '#';
+  const player = {
+    x: 190,
+    y: GROUND - 42,
+    w: 42,
+    h: 42,
+    vy: 0,
+    rot: 0,
+    dash: false,
+    dashFuel: 0,
+    coyote: 0,
+    onGround:true,
+    alive:true
+  };
+
+  const world = {
+    speed: 7,
+    targetSpeed: 7,
+    distance: 0,
+    stage: 1,
+    obstacles: [],
+    particles: [],
+    rings: [],
+    lasers: []
+  };
+
+  const audio = createSynth();
+
+  function resetGame() {
+    t = 0; score = 0; patternCooldown = 20;
+    rngSeed = Math.random()*99999;
+    player.y = GROUND - player.h; player.vy = 0; player.rot = 0;
+    player.onGround = true; player.alive = true; player.dash = false; player.dashFuel = 0; player.coyote = 0;
+    world.speed = 7; world.targetSpeed = 7; world.distance = 0; world.stage = 1;
+    world.obstacles.length = 0; world.particles.length = 0; world.rings.length = 0; world.lasers.length = 0;
+    stageEl.textContent = '1';
+    stateEl.textContent = 'GO!';
+  }
+
+  function startGame() {
+    resetGame();
+    running = true;
+    overlay.classList.add('hidden');
+  }
+
+  function gameOver() {
+    player.alive = false;
+    running = false;
+    pulse = 1;
+    stateEl.textContent = 'Crash! Drücke R oder starte neu.';
+    overlay.classList.remove('hidden');
+    const msg = overlay.querySelector('p');
+    msg.innerHTML = `Score <strong>${Math.floor(score)}</strong> · Best <strong>${best}</strong>. Du warst in Stage ${world.stage}.`;
+  }
+
+  function jump() {
+    if (!player.alive) return;
+    if (player.onGround || player.coyote > 0) {
+      player.vy = -13.5;
+      player.onGround = false;
+      player.coyote = 0;
+      spawnBurst(player.x + 18, player.y + player.h, 18, '#64f7ff');
+      beep(880, 0.05, 'triangle');
     }
   }
-  function enterPresent(){
-    root.setAttribute('data-present','on');
-    presentControls.style.display='flex';
-    const hashId = location.hash.replace('#','');
-    const startIndex = hashId ? Math.max(0, decks.findIndex(d => d.id===hashId)) : 0;
-    setSlide(startIndex);
-    localStorage.setItem(presentKey,'on');
-  }
-  function exitPresent(){
-    root.setAttribute('data-present','off');
-    presentControls.style.display='none';
-    localStorage.setItem(presentKey,'off');
-  }
-  presentToggle.addEventListener('click', ()=> {
-    if(root.getAttribute('data-present')==='on'){ exitPresent(); } else { enterPresent(); }
-  });
-  document.getElementById('prevBtn').addEventListener('click', ()=> setSlide(slide-1));
-  document.getElementById('nextBtn').addEventListener('click', ()=> setSlide(slide+1));
-  window.addEventListener('keydown', (e)=>{
-    if(root.getAttribute('data-present')!=='on') return;
-    if(['ArrowRight','PageDown',' '].includes(e.key)){ e.preventDefault(); setSlide(slide+1); }
-    if(['ArrowLeft','PageUp','Backspace'].includes(e.key)){ e.preventDefault(); setSlide(slide-1); }
-    if(e.key==='Escape'){ exitPresent(); }
-  });
-  if(localStorage.getItem(presentKey)==='on'){ enterPresent(); }
 
-  // --------- QUIZ DATA ----------
-  const quizData = [
-    { q:"Wofür steht „Nostra aetate“?", opts:["In unserer Zeit","Im Glauben vereint","Allen zum Heil","Für alle Menschen"], correct:0, expl:"Der Titel betont die Gegenwartsorientierung des Textes." },
-    { q:"Welche Dokumentart ist es?", opts:["Dogma","Erklärung (pastoral)","Gesetzbuch","Privatmeinung"], correct:1, expl:"Es bietet praxisnahe Leitlinien und definiert kein neues Dogma." },
-    { q:"Grundhaltung gegenüber anderen Religionen?", opts:["Abgrenzung","Respekt & Dialog","Zwangsmission","Ignorieren"], correct:1, expl:"Respekt vor Wahrheit/Heiligkeit und Bereitschaft zur Zusammenarbeit." },
-    { q:"Was sagt der Text zur Schuld am Tod Jesu?", opts:["Kollektivschuld der Juden","Nur Römer schuld","Keine Kollektivschuld","Unklar"], correct:2, expl:"Kollektivschuld widerspricht Evangelium und Menschenwürde." },
-    { q:"Wie bewertet Nostra aetate Antisemitismus?", opts:["Neutral","Teilweise akzeptabel","Verworfen","Unwichtig"], correct:2, expl:"Antisemitismus wird klar verurteilt." },
-    { q:"Gemeinsame Schrifttradition mit dem Judentum?", opts:["Nur NT","Hebräische Bibel/AT","Nur Apokryphen","Keine"], correct:1, expl:"Das Christentum hat jüdische Wurzeln im AT/Tanach." },
-    { q:"Ziel im Zusammenleben?", opts:["Abschottung","Konflikt","Frieden & Menschenrechte","Mission mit Druck"], correct:2, expl:"Gemeinsame Verantwortung für eine gerechte und friedliche Gesellschaft." },
-    { q:"Was fordert der Text sprachlich?", opts:["Scharfe Abgrenzung","Feindbilder","Sensibilität & Fairness","Schweigen"], correct:2, expl:"Respektvolle Sprache verhindert Pauschalisierungen und Hass." },
-    { q:"Wann verabschiedet?", opts:["1054","1517","1965","2005"], correct:2, expl:"Beschlussdatum ist der 28. Oktober 1965." },
-    { q:"Praxis-Folge zum Judentum?", opts:["Ignorieren","Erinnerungskultur & Bildung","Abwertung","Zwang"], correct:1, expl:"Gedenkarbeit, Unterricht ohne Stereotype und Zusammenarbeit vor Ort." }
-  ];
-
-  // --------- QUIZ RENDERING ----------
-  const quizContainer = document.getElementById('quizContainer');
-  const scoreBox = document.getElementById('scoreBox');
-  const overallFeedback = document.getElementById('overallFeedback');
-  const checkBtn = document.getElementById('checkBtn');
-  const resetBtn = document.getElementById('resetBtn');
-
-  function renderQuiz() {
-    if(!quizContainer) return;
-    quizContainer.innerHTML = '';
-    quizData.forEach((item, idx) => {
-      const qWrap = document.createElement('div');
-      qWrap.className = 'q';
-      qWrap.setAttribute('data-idx', idx);
-
-      const title = document.createElement('h4');
-      title.textContent = `Frage ${idx+1}: ${item.q}`;
-      qWrap.appendChild(title);
-
-      const opts = document.createElement('div');
-      opts.className = 'opts';
-
-      item.opts.forEach((text, oi) => {
-        const label = document.createElement('label');
-        label.className = 'opt';
-        const input = document.createElement('input');
-        input.type = 'radio';
-        input.name = `q${idx}`;
-        input.value = oi;
-        input.setAttribute('aria-label', text);
-
-        const span = document.createElement('span');
-        span.textContent = text;
-
-        label.appendChild(input);
-        label.appendChild(span);
-        opts.appendChild(label);
+  function spawnBurst(x, y, n, color) {
+    for (let i = 0; i < n; i++) {
+      world.particles.push({
+        x, y,
+        vx: (Math.random() - 0.5) * 8,
+        vy: (Math.random() - 0.8) * 6,
+        life: 22 + Math.random() * 20,
+        color,
+        r: 2 + Math.random() * 3
       });
+    }
+  }
 
-      const fb = document.createElement('p');
-      fb.className = 'feedback';
-      fb.id = `fb-${idx}`;
-      fb.textContent = '';
+  function seeded() {
+    const x = Math.sin(rngSeed++) * 10000;
+    return x - Math.floor(x);
+  }
 
-      qWrap.appendChild(opts);
-      qWrap.appendChild(fb);
-      quizContainer.appendChild(qWrap);
+  function spawnPattern() {
+    const s = world.stage;
+    const x0 = W + 60;
+    const gap = Math.max(145, 220 - s * 8);
+    const typeRoll = seeded();
+
+    if (typeRoll < 0.38) {
+      const count = 2 + Math.floor(seeded() * 3);
+      for (let i = 0; i < count; i++) {
+        world.obstacles.push({ x: x0 + i * gap, y: GROUND - 44, w: 42, h: 44, kind:'spike' });
+      }
+    } else if (typeRoll < 0.66) {
+      world.obstacles.push({ x: x0, y: GROUND - 80, w: 56, h: 80, kind:'tower' });
+      world.obstacles.push({ x: x0 + 110, y: GROUND - 44, w: 42, h: 44, kind:'spike' });
+      if (s > 2 && seeded() > 0.4) {
+        world.rings.push({ x: x0 + 60, y: GROUND - 170, r: 20, used:false });
+      }
+    } else if (typeRoll < 0.86) {
+      world.obstacles.push({ x: x0, y: GROUND - 44, w: 42, h: 44, kind:'spike' });
+      world.obstacles.push({ x: x0 + 180, y: GROUND - 44, w: 42, h: 44, kind:'spike' });
+      world.obstacles.push({ x: x0 + 360, y: GROUND - 44, w: 42, h: 44, kind:'spike' });
+      world.rings.push({ x: x0 + 180, y: GROUND - 180, r: 18, used:false });
+    } else {
+      world.obstacles.push({ x: x0, y: GROUND - 44, w: 42, h: 44, kind:'spike' });
+      world.obstacles.push({ x: x0 + 130, y: GROUND - 120, w: 54, h: 120, kind:'tower' });
+      world.obstacles.push({ x: x0 + 260, y: GROUND - 44, w: 42, h: 44, kind:'spike' });
+      if (s >= 4) {
+        world.lasers.push({ x: x0 + 360, y: 110 + seeded()*200, w: 28, h: 8, phase:seeded()*Math.PI*2 });
+      }
+    }
+  }
+
+  function update() {
+    if (!running) return;
+    t += 1;
+    world.distance += world.speed;
+    score += world.speed * 0.22;
+    scoreEl.textContent = Math.floor(score);
+
+    world.stage = 1 + Math.floor(score / 450);
+    stageEl.textContent = world.stage;
+    world.targetSpeed = Math.min(15.5, 7 + world.stage * 0.55);
+    world.speed += (world.targetSpeed - world.speed) * 0.02;
+
+    if (score > best) {
+      best = Math.floor(score);
+      bestEl.textContent = best;
+      localStorage.setItem('neonDashBest', best);
+    }
+
+    if (patternCooldown <= 0) {
+      spawnPattern();
+      patternCooldown = Math.max(16, 45 - world.stage * 2.8 + seeded() * 10);
+    }
+    patternCooldown -= world.speed * 0.12;
+
+    if (!player.onGround) {
+      player.coyote = Math.max(0, player.coyote - 1);
+    }
+
+    if (player.dash) {
+      if (input.down && player.dashFuel > 0) {
+        player.vy += -0.6;
+        player.dashFuel -= 0.7;
+        spawnBurst(player.x, player.y + 18, 2, '#a855f7');
+      }
+      if (player.dashFuel <= 0) player.dash = false;
+    }
+
+    player.vy += 0.7;
+    if (player.vy > 18) player.vy = 18;
+    player.y += player.vy;
+
+    if (player.y + player.h >= GROUND) {
+      if (!player.onGround) {
+        beep(220, 0.04, 'square');
+      }
+      player.y = GROUND - player.h;
+      player.vy = 0;
+      player.onGround = true;
+      player.coyote = 5;
+    } else {
+      player.onGround = false;
+    }
+
+    player.rot += player.onGround ? 0 : 0.17;
+
+    for (const o of world.obstacles) o.x -= world.speed;
+    for (const r of world.rings) r.x -= world.speed;
+    for (const l of world.lasers) {
+      l.x -= world.speed;
+      l.phase += 0.06;
+      l.h = 8 + Math.sin(l.phase) * 4;
+    }
+
+    world.obstacles = world.obstacles.filter(o => o.x + o.w > -40);
+    world.rings = world.rings.filter(r => r.x + r.r > -40);
+    world.lasers = world.lasers.filter(l => l.x + l.w > -40);
+
+    for (const p of world.particles) {
+      p.x += p.vx; p.y += p.vy;
+      p.vy += 0.17;
+      p.life -= 1;
+    }
+    world.particles = world.particles.filter(p => p.life > 0);
+
+    for (const ring of world.rings) {
+      if (ring.used) continue;
+      const dx = (player.x + player.w * 0.5) - ring.x;
+      const dy = (player.y + player.h * 0.5) - ring.y;
+      const hit = Math.hypot(dx, dy) < ring.r + 14;
+      if (hit) {
+        ring.used = true;
+        player.vy = -14;
+        player.dash = true;
+        player.dashFuel = 34;
+        spawnBurst(ring.x, ring.y, 32, '#a855f7');
+        beep(1180, 0.08, 'sawtooth');
+      }
+    }
+
+    for (const o of world.obstacles) {
+      if (rectHit(player, o)) {
+        spawnBurst(player.x + 20, player.y + 20, 45, '#ff6f91');
+        beep(120, 0.15, 'square');
+        gameOver();
+      }
+    }
+
+    for (const l of world.lasers) {
+      const danger = {
+        x:l.x,
+        y:l.y - 30,
+        w:l.w,
+        h:60
+      };
+      if (rectHit(player, danger)) {
+        spawnBurst(player.x + 20, player.y + 20, 45, '#ff6f91');
+        beep(100, 0.18, 'sawtooth');
+        gameOver();
+      }
+    }
+
+    if (player.y > H + 100) {
+      gameOver();
+    }
+  }
+
+  function rectHit(a,b) {
+    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  }
+
+  function draw() {
+    const skyShift = (t * world.speed * 0.2) % W;
+    ctx.clearRect(0,0,W,H);
+
+    const g = ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'#090f1f');
+    g.addColorStop(1,'#070910');
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,W,H);
+
+    stars.forEach(s => {
+      const xx = (s.x - skyShift * s.z + W) % W;
+      const twinkle = 0.4 + Math.sin(t*0.02 + s.tw)*0.3;
+      ctx.fillStyle = `rgba(170,210,255,${twinkle})`;
+      ctx.fillRect(xx, s.y + Math.sin(t*0.01 + s.p)*2, s.z*1.8, s.z*1.8);
     });
 
-    if (scoreBox) scoreBox.textContent = `Score: 0/${quizData.length}`;
-    if (overallFeedback) overallFeedback.textContent = '';
+    drawGround();
+    drawObjects();
+    drawPlayer();
+    drawParticles();
+
+    if (pulse > 0.01) {
+      ctx.fillStyle = `rgba(255,80,120,${pulse * 0.2})`;
+      ctx.fillRect(0,0,W,H);
+      pulse *= 0.88;
+    }
   }
 
-  function gradeQuiz() {
-    let score = 0;
-    quizData.forEach((item, idx) => {
-      const chosen = document.querySelector(`input[name="q${idx}"]:checked`);
-      const labelsWrap = document.querySelectorAll(`[name="q${idx}"]`)?.[0]?.closest('.opts');
-      const allLabels = labelsWrap ? labelsWrap.querySelectorAll('.opt') : [];
-      allLabels.forEach(l => l.classList.remove('correct','wrong'));
+  function drawGround() {
+    const offset = (world.distance * 0.6) % 80;
+    ctx.fillStyle = '#111b30';
+    ctx.fillRect(0, GROUND, W, H - GROUND);
 
-      if (!chosen) {
-        document.getElementById(`fb-${idx}`).textContent = 'Bitte eine Antwort wählen.';
-        return;
-      }
+    for (let x = -80; x < W + 80; x += 80) {
+      ctx.fillStyle = (Math.floor((x + offset)/80) % 2 === 0) ? '#1c2b4c' : '#16233f';
+      ctx.fillRect(x - offset, GROUND, 70, H - GROUND);
+    }
 
-      const val = Number(chosen.value);
-      const labels = chosen.closest('.opts').querySelectorAll('.opt');
+    ctx.strokeStyle = '#64f7ff';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(0, GROUND);
+    ctx.lineTo(W, GROUND);
+    ctx.stroke();
+  }
 
-      labels.forEach((lab, i)=> {
-        if (i === item.correct) lab.classList.add('correct');
-        if (i === val && val !== item.correct) lab.classList.add('wrong');
-      });
-
-      if (val === item.correct) {
-        score++;
-        document.getElementById(`fb-${idx}`).textContent = 'Richtig! ✅ ' + item.expl;
+  function drawObjects() {
+    for (const o of world.obstacles) {
+      if (o.kind === 'spike') {
+        ctx.fillStyle = '#ff6f91';
+        ctx.beginPath();
+        ctx.moveTo(o.x, o.y + o.h);
+        ctx.lineTo(o.x + o.w / 2, o.y);
+        ctx.lineTo(o.x + o.w, o.y + o.h);
+        ctx.closePath();
+        ctx.fill();
       } else {
-        document.getElementById(`fb-${idx}`).textContent = 'Leider falsch. ❌ ' + item.expl;
+        ctx.fillStyle = '#7a6cff';
+        ctx.fillRect(o.x, o.y, o.w, o.h);
+        ctx.fillStyle = 'rgba(255,255,255,.2)';
+        ctx.fillRect(o.x + 5, o.y + 5, o.w - 10, 12);
       }
-    });
+    }
 
-    if (scoreBox) scoreBox.textContent = `Score: ${score}/${quizData.length}`;
-    const pct = Math.round((score / quizData.length) * 100);
-    overallFeedback.textContent =
-      pct === 100 ? 'Perfekt! 🎉' :
-      pct >= 80 ? 'Sehr gut! 💪' :
-      pct >= 50 ? 'Okay – die Kernpunkte oben kurz wiederholen. 🙂' :
-      'Nochmal durchlesen und dann erneut versuchen. 📚';
+    for (const ring of world.rings) {
+      if (ring.used) continue;
+      ctx.strokeStyle = '#a855f7';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.arc(ring.x, ring.y, ring.r + Math.sin(t*0.08)*2, 0, Math.PI*2);
+      ctx.stroke();
+    }
+
+    for (const l of world.lasers) {
+      ctx.fillStyle = '#ff496e';
+      ctx.fillRect(l.x, l.y, l.w, l.h);
+      ctx.fillStyle = 'rgba(255,73,110,.3)';
+      ctx.fillRect(l.x - 12, l.y - 20, l.w + 24, l.h + 40);
+    }
   }
 
-  function resetQuiz() {
-    renderQuiz();
-    if (overallFeedback) overallFeedback.textContent = '';
-    const first = quizContainer.querySelector('.q input');
-    if (first) first.focus();
+  function drawPlayer() {
+    ctx.save();
+    ctx.translate(player.x + player.w / 2, player.y + player.h / 2);
+    ctx.rotate(player.rot);
+
+    ctx.fillStyle = player.dash ? '#a855f7' : '#64f7ff';
+    ctx.shadowColor = player.dash ? '#a855f7' : '#64f7ff';
+    ctx.shadowBlur = 20;
+    ctx.fillRect(-player.w / 2, -player.h / 2, player.w, player.h);
+
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#0a0d19';
+    ctx.fillRect(-8, -8, 16, 16);
+    ctx.restore();
+
+    for (let i = 0; i < 4; i++) {
+      ctx.fillStyle = `rgba(100,247,255,${0.22 - i*0.05})`;
+      ctx.fillRect(player.x - i*8, player.y + 14, 8, 8);
+    }
   }
 
-  document.getElementById('checkBtn')?.addEventListener('click', gradeQuiz);
-  document.getElementById('resetBtn')?.addEventListener('click', resetQuiz);
+  function drawParticles() {
+    for (const p of world.particles) {
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = Math.max(0, p.life / 36);
+      ctx.fillRect(p.x, p.y, p.r, p.r);
+      ctx.globalAlpha = 1;
+    }
+  }
 
-  // init
-  renderQuiz();
+  function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  function createSynth() {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    return Ctx ? new Ctx() : null;
+  }
+
+  function beep(freq, dur, type='sine') {
+    if (muted || !audio) return;
+    if (audio.state === 'suspended') audio.resume();
+    const now = audio.currentTime;
+    const osc = audio.createOscillator();
+    const gain = audio.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.exponentialRampToValueAtTime(0.12, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+    osc.connect(gain).connect(audio.destination);
+    osc.start(now);
+    osc.stop(now + dur + 0.02);
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') {
+      e.preventDefault();
+      input.down = true;
+      if (running) jump();
+    }
+    if (e.key.toLowerCase() === 'r') {
+      startGame();
+    }
+  });
+  document.addEventListener('keyup', (e) => {
+    if (e.code === 'Space') input.down = false;
+  });
+  canvas.addEventListener('pointerdown', () => {
+    input.down = true;
+    if (running) jump();
+  });
+  window.addEventListener('pointerup', () => input.down = false);
+
+  startBtn.addEventListener('click', startGame);
+  audioBtn.addEventListener('click', () => {
+    muted = !muted;
+    audioBtn.textContent = `Audio: ${muted ? 'aus' : 'an'}`;
+  });
+
+  loop();
+})();
 </script>
 </body>
 </html>
