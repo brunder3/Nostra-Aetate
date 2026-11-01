@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Motorklang – Sportwagen-Sound für Tesla</title>
+  <meta name="description" content="Kostenloser Motorsound-Simulator für den Tesla-Browser: Sportwagen-Klang in Echtzeit, gesteuert über GPS-Geschwindigkeit." />
+  <meta name="theme-color" content="#0a0b0d" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path fill="currentColor" d="M12 4a10 10 0 0 0-10 10c0 1.6.4 3.1 1 4.4l1.8-.9A8 8 0 1 1 20 14c0 1.3-.3 2.5-.8 3.5l1.8.9A10 10 0 0 0 12 4Zm4.6 4.2-5.5 4.3a1.7 1.7 0 1 0 2.4 2.4l4.3-5.5-1.2-1.2Z"/></svg>
+      <span class="title">Motorklang</span>
+    </div>
+    <div class="seg" id="srcSeg" role="radiogroup" aria-label="Quelle">
+      <button data-src="gps" role="radio">GPS</button>
+      <button data-src="demo" role="radio">Testfahrt</button>
+    </div>
+    <span id="gpsPill" class="pill">GPS aus</span>
+    <button id="helpBtn" class="icon-btn" aria-label="Hilfe">?</button>
+    <button id="settingsBtn" class="icon-btn" aria-label="Einstellungen">
+      <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.5 7.5 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.5 7.5 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1c.5.4 1.1.7 1.7 1l.4 2.6h4l.4-2.6c.6-.3 1.2-.6 1.7-1l2.5 1 2-3.5-2.3-1.6ZM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z" transform="translate(-1 0)"/></svg>
+    </button>
+  </header>
+
+  <main class="layout">
+    <section class="dash">
+      <div class="tacho-wrap">
+        <canvas id="tacho" aria-label="Drehzahlmesser"></canvas>
+      </div>
+      <div class="drive-row">
+        <button id="downBtn" class="paddle" aria-label="Runterschalten">−</button>
+        <button id="startBtn" class="start">Motor starten</button>
+        <button id="upBtn" class="paddle" aria-label="Hochschalten">+</button>
+      </div>
+      <div class="drive-row second">
+        <label class="vol">
+          <span>Lautstärke</span>
+          <input type="range" id="vol" min="0" max="1" step="0.01" />
+        </label>
+        <button id="gasBtn" class="gas" title="Gedrückt halten zum Hochdrehen im Stand">Gas</button>
+      </div>
+    </section>
+
+    <section class="garage">
+      <div class="garage-head">
+        <h2>Fahrzeug</h2>
+        <span id="carInfo" class="muted"></span>
+      </div>
+      <div id="carGrid" class="grid"></div>
+    </section>
+  </main>
+
+  <aside id="settings" class="sheet" hidden>
+    <div class="sheet-inner">
+      <div class="sheet-head">
+        <h2>Einstellungen</h2>
+        <button class="icon-btn" data-close aria-label="Schließen">✕</button>
+      </div>
+
+      <label class="field">
+        <span>Fahrstil <em id="aggrVal"></em></span>
+        <input type="range" id="aggr" min="0" max="1" step="0.01" />
+        <small>Gemütlich = frühes Hochschalten · Sportlich = Ausdrehen bis zum Begrenzer</small>
+      </label>
+
+      <label class="field">
+        <span>Pops &amp; Bangs <em id="popsVal"></em></span>
+        <input type="range" id="pops" min="0" max="1" step="0.01" />
+        <small>Knallen und Blubbern im Schub und beim Hochschalten</small>
+      </label>
+
+      <label class="field">
+        <span>Bass <em id="bassVal"></em></span>
+        <input type="range" id="bass" min="-6" max="12" step="1" />
+      </label>
+
+      <label class="field">
+        <span>Höhen <em id="trebleVal"></em></span>
+        <input type="range" id="treble" min="-12" max="6" step="1" />
+      </label>
+
+      <div class="field toggles">
+        <label class="toggle"><input type="checkbox" id="valve" /><span>Klappenauspuff offen (Sport)</span></label>
+        <label class="toggle"><input type="checkbox" id="manual" /><span>Manuell schalten (+ / − Wippen)</span></label>
+        <label class="toggle"><input type="checkbox" id="mph" /><span>Geschwindigkeit in mph</span></label>
+      </div>
+
+      <div class="field">
+        <span>Geschwindigkeit testen (ohne GPS)</span>
+        <input type="range" id="testSpeed" min="0" max="250" step="1" value="0" />
+        <small>Nur aktiv, wenn „Testfahrt“ ausgewählt und Automatik pausiert ist: <button id="demoPause" class="link">Testfahrt pausieren</button></small>
+      </div>
+
+      <div class="diag" id="diag"></div>
+      <p class="muted small">Klang wird live im Browser berechnet (Motor-Synthese). Eigene echte Aufnahmen lassen sich als Sound-Pack hinzufügen – siehe README im Repository.</p>
+    </div>
+  </aside>
+
+  <aside id="help" class="sheet" hidden>
+    <div class="sheet-inner">
+      <div class="sheet-head">
+        <h2>So funktioniert's</h2>
+        <button class="icon-btn" data-close aria-label="Schließen">✕</button>
+      </div>
+      <ol class="steps">
+        <li>Fahrzeug auswählen und <b>Motor starten</b> tippen.</li>
+        <li>Standortzugriff <b>erlauben</b> – die Geschwindigkeit kommt vom GPS.</li>
+        <li>Losfahren: Drehzahl, Gang und Last werden aus Tempo und Beschleunigung berechnet.</li>
+        <li>Im Stand mit <b>Gas</b> (gedrückt halten) hochdrehen.</li>
+        <li>Mit <b>Testfahrt</b> kannst du alles ohne Fahren ausprobieren.</li>
+      </ol>
+      <p class="muted small">Tipp: Browser geöffnet lassen (z. B. geteilter Bildschirm mit der Karte). GPS liefert etwa 1× pro Sekunde einen Wert, deshalb reagiert der Sound mit kurzer Verzögerung – zwischen den Messungen wird die Bewegung vorausberechnet.</p>
+      <p class="muted small">Bitte die Lautstärke so wählen, dass Martinshörner und Warnsignale hörbar bleiben.</p>
+    </div>
+  </aside>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
