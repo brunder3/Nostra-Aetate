@@ -7,7 +7,7 @@ const $ = (s) => document.querySelector(s);
 const STORE = 'motorklang.v1';
 
 const defaults = {
-  carId: 'amg-v8',
+  carId: 'f1-v8',
   volume: 0.7,
   aggr: 0.6,
   pops: 0.6,
@@ -95,7 +95,8 @@ function renderCars() {
     const b = document.createElement('button');
     b.className = 'car' + (v.id === current.id ? ' active' : '');
     b.style.setProperty('--c', v.color);
-    b.innerHTML = `<b></b><span></span><i></i>${v.kind === 'pack' ? '<em class="tag">Aufnahme</em>' : ''}`;
+    const tag = v.kind === 'pack' ? 'Aufnahme' : v.fav ? '★ Favorit' : '';
+    b.innerHTML = `<b></b><span></span><i></i>${tag ? `<em class="tag">${tag}</em>` : ''}`;
     b.querySelector('b').textContent = v.name;
     b.querySelector('span').textContent = v.sub;
     b.querySelector('i').textContent = v.inspired ? `Klangvorbild: ${v.inspired}` : '';

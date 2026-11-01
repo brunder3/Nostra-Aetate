@@ -1,5 +1,5 @@
 // Service Worker: Netz zuerst, bei Funkloch aus dem Cache.
-const CACHE = 'motorklang-v1';
+const CACHE = 'motorklang-v2';
 const CORE = [
   './', 'index.html', 'css/style.css', 'icon.svg', 'manifest.webmanifest',
   'js/app.js', 'js/audio.js', 'js/cars.js', 'js/drivetrain.js', 'js/gps.js', 'js/samplepack.js', 'js/engine-worklet.js',

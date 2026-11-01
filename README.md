@@ -8,10 +8,19 @@ Schubphasen. Der Klang wird **live im Browser berechnet**: Es gibt keine Abo-Kos
 
 ## Funktionen
 
-- **14 Motoren** mit eigener Zündfolge, Krümmer- und Auspuffakustik:
-  AMG-V8-Biturbo, Muscle-V8, Supercharged-V8 (Kompressor-Heulen), Ferrari-V12, Flat-Plane-V8,
-  Lamborghini-V10, Porsche-GT3-Boxer, BMW-M-Reihensechser, Supra 2JZ (Blow-Off), Audi-Fünfzylinder,
-  Subaru-Boxer-Grollen, Wankel-Twin-Rotor, GT-R-V6-Biturbo und Formel-1-V10 (19.000 U/min).
+- **Favoriten, besonders detailliert abgestimmt:**
+  - **Formel 1 V8 · 2010–2013**: 2,4-Liter-V8 mit Flachkurbelwelle und 18.000 U/min, Seamless-Shift,
+    knatterndes Schubgeräusch („angeblasener Diffusor“), Zwischengas-Kaskaden beim Anbremsen,
+    unruhiger Boxen-Leerlauf.
+  - **Porsche 911 GT3 (992)**: 4,0-Liter-Boxer bis 9.000 U/min. Ab ca. 5.800 U/min schaltet das
+    Saugrohr um, dann wird der Ansaugschrei härter. Dazu PDK-Schaltlogik mit Zwischengas und eine
+    automatische Auspuffklappe.
+  - **Formel 1 V6 Turbo-Hybrid · 2014**: Turbo-Pfeifen, das MGU-H hält den Ladedruck, MGU-K heult beim
+    Rekuperieren.
+  - **Formel 1 V12 · 1990er**: 3,0-Liter-V12 mit 17.000 U/min.
+- **Weitere 13 Motoren**: AMG-V8-Biturbo, Muscle-V8, Supercharged-V8 (Kompressor-Heulen), Ferrari-V12,
+  Flat-Plane-V8, Lamborghini-V10, BMW-M-Reihensechser, Supra 2JZ (Blow-Off), Audi-Fünfzylinder,
+  Subaru-Boxer-Grollen, Wankel-Twin-Rotor, GT-R-V6-Biturbo und Formel-1-V10 (2004).
 - **Realistisches Getriebe** je Fahrzeug (DCT, PDK, Automatik oder Handschalter) mit echten Übersetzungen.
   Die Schaltpunkte hängen vom Fahrstil ab. Beim Runterschalten gibt es Zwischengas, beim Hochschalten
   unter Volllast eine Zündunterbrechung.

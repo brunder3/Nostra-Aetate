@@ -158,6 +158,9 @@ class EngineProcessor extends AudioWorkletProcessor {
     this.scPh = 0;
     this.wobPh = 0;
     this.lim = false;
+    this.flap = 1; this.flapApplied = -1;
+    this.inSw = 0;
+    this.whPh = 0; this.whAmp = 0;
 
     const maxPipe = Math.ceil(0.04 * sr);
     this.col = [new Pipe(maxPipe), new Pipe(maxPipe)];
@@ -170,7 +173,7 @@ class EngineProcessor extends AudioWorkletProcessor {
     this.popDelay = [0, 0]; this.popAmp = [0, 0]; this.popEnv = [0, 0]; this.popDecay = 0.99;
     this.popLP = [new Biquad(), new Biquad()];
 
-    this.inN = new Biquad(); this.inH = new Biquad(); this.inLP = new Biquad();
+    this.inN = new Biquad(); this.inH = new Biquad(); this.inH2 = new Biquad(); this.inLP = new Biquad();
     this.mechHP = new Biquad();
     this.tbBP = new Biquad(); this.bovBP = new Biquad(); this.bovBP2 = new Biquad();
     this.dcL = new Biquad(); this.dcR = new Biquad();
@@ -241,6 +244,7 @@ class EngineProcessor extends AudioWorkletProcessor {
     }
     this.inN.bp(c.intake.hz, c.intake.q, sr);
     this.inH.bp(c.intake.helm, 2.5, sr);
+    this.inH2.bp(c.intake.helm2 || c.intake.helm, 2.5, sr);
     this.inLP.lp(4000, 0.7, sr);
     this.mechHP.hp(2600, 0.7, sr);
     this.tbBP.bp(3200, 0.9, sr);
@@ -252,21 +256,29 @@ class EngineProcessor extends AudioWorkletProcessor {
     this.rpm = this.tRpm = c.idle;
     this.phase = 0;
     this.pOn.fill(0); this.iOn.fill(0);
+    this.flapApplied = -1;
     this.updateFilters();
   }
 
   updateFilters() {
     const c = this.cfg; if (!c) return;
     const sr = this.sr;
+    this.applyFlap(this.flap);
+    this.bsL.lowshelf(110, this.bassDb, sr); this.bsR.lowshelf(110, this.bassDb, sr);
+    this.trL.highshelf(3500, this.trebleDb, sr); this.trR.highshelf(3500, this.trebleDb, sr);
+  }
+
+  // Auspuffklappe: 0 = zu, 1 = offen (stufenlos, damit es nicht knackt)
+  applyFlap(pos) {
+    const c = this.cfg; const sr = this.sr;
     const turboDamp = c.turbo ? 1 - 0.25 * c.turbo.level : 1;
-    const fc = (this.valve ? c.muffler.valveCutoff : c.muffler.cutoff) * turboDamp;
+    const fc = (c.muffler.cutoff + (c.muffler.valveCutoff - c.muffler.cutoff) * pos) * turboDamp;
     for (let b = 0; b < 2; b++) {
       this.mLP[b].lp(fc, 0.6, sr);
       this.mLP2[b].lp(fc * 1.6, 0.6, sr);
     }
-    this.exLevel = this.valve ? 1.0 : 0.62;
-    this.bsL.lowshelf(110, this.bassDb, sr); this.bsR.lowshelf(110, this.bassDb, sr);
-    this.trL.highshelf(3500, this.trebleDb, sr); this.trR.highshelf(3500, this.trebleDb, sr);
+    this.exLevel = 0.62 + 0.38 * pos;
+    this.flapApplied = pos;
   }
 
   fireCyl(i, rpmN, idleF, overrun) {
@@ -275,7 +287,13 @@ class EngineProcessor extends AudioWorkletProcessor {
     let cut = this.cutSamples > 0;
     if (this.lim && rnd() < 0.75) cut = true;
     if (cut) a = 0.035;
-    else if (overrun) a = 0.13 + 0.05 * rnd();
+    else if (overrun) {
+      if (c.overrunMode === 'blown' && this.rpm > c.idle * 1.3) {
+        // "Angeblasener Diffusor" (F1 2010/11): Motor zündet im Schub mit spätem
+        // Zündzeitpunkt weiter -> raues, knatterndes Schubgeräusch
+        a = rnd() < 0.3 ? 0.04 : 0.3 + 0.28 * rnd();
+      } else a = 0.13 + 0.05 * rnd();
+    }
     else a = 0.3 + 0.7 * Math.pow(this.load, 0.85);
     a *= 0.7 + 0.45 * rpmN;
     const rough = c.rough * (1 + 2.5 * idleF);
@@ -285,7 +303,7 @@ class EngineProcessor extends AudioWorkletProcessor {
     this.pDelay[i] = this.hdr[i];
     this.pAge[i] = 0;
     this.pAmp[i] = a;
-    this.pW[i] = c.pulseW * (overrun || cut ? 1.35 : 1.15 - 0.35 * this.load);
+    this.pW[i] = c.pulseW * (overrun || cut ? (c.overrunMode === 'blown' ? 1.5 : 1.35) : 1.15 - 0.35 * this.load);
     this.pOn[i] = 1;
     // Ansaugimpuls
     this.iAge[i] = 0;
@@ -326,13 +344,29 @@ class EngineProcessor extends AudioWorkletProcessor {
     if (c.turbo) {
       const spool = Math.min(1, Math.max(0, (this.rpm - c.turbo.spool * 0.55) / (c.turbo.spool * 0.9)));
       const target = Math.pow(this.load, 1.3) * spool;
-      const tau = target > this.boost ? 0.55 : 0.2;
+      const tau = target > this.boost ? 0.55 : c.turbo.hold || 0.2;
       this.boost += (target - this.boost) * Math.min(1, dt / tau);
     }
     const overrun = this.load < 0.035 && this.tLoad < 0.05;
     this.overrunT = overrun ? this.overrunT + dt : 0;
     this.lim = this.rpm >= c.limiter * 0.993;
     const fadeTarget = this.on ? 1 : 0;
+
+    // Klappe: "offen" = immer offen, sonst automatisch bei Last / hoher Drehzahl
+    const flapT = this.valve ? 1 : (this.load > 0.5 && rpmN0 > 0.4) || rpmN0 > 0.68 ? 1 : 0;
+    this.flap += (flapT - this.flap) * Math.min(1, dt / 0.25);
+    if (Math.abs(this.flap - this.flapApplied) > 0.02) this.applyFlap(this.flap);
+
+    // Schaltsaugrohr (z. B. GT3): ab einer Drehzahl andere Resonanz + mehr Ansauggeräusch
+    const swRpm = c.intake.switchRpm || 0;
+    if (swRpm) {
+      const x = Math.min(1, Math.max(0, (this.rpm - swRpm) / 600 + 0.5));
+      this.inSw = x * x * (3 - 2 * x);
+    } else this.inSw = 0;
+    const inSw = this.inSw;
+    const inMul = 1 + ((c.intake.level2 || 1) - 1) * inSw;
+    const wh = c.whine;
+    const inNoise = 1.8 * (c.intake.noise ?? 1);
 
     const n = this.n;
     const cyc = this.cycle;
@@ -358,7 +392,7 @@ class EngineProcessor extends AudioWorkletProcessor {
       // leichtes Leerlauf-Schwanken (Nockenwelle / Lope)
       this.wobPh += 0.9 / sr;
       if (this.wobPh > 1) this.wobPh -= 1;
-      const wob = 1 + idleF * (0.012 + lope * 0.05) * Math.sin(TAU * this.wobPh) ;
+      const wob = 1 + idleF * (0.012 + lope * 0.05 + (c.wobble || 0)) * Math.sin(TAU * this.wobPh);
       const rpm = this.rpm * wob;
       const rpmN = rpm / c.redline;
       const dps = (6 * rpm) / sr; // Kurbelwellengrad pro Sample
@@ -446,14 +480,24 @@ class EngineProcessor extends AudioWorkletProcessor {
       const exR = (ex1 + cross * ex0) * xn * this.exLevel;
 
       // Ansaugtrakt
-      const inG = inLvl * (0.25 + 0.75 * this.load) * (0.35 + 0.65 * rpmN) * (tb ? 0.6 : 1);
-      const intake = inG * this.inLP.p(this.inH.p(inT) * 1.4 + this.inN.p(inNz) * 1.8);
+      const inG = inLvl * inMul * (0.25 + 0.75 * this.load) * (0.35 + 0.65 * rpmN) * (tb ? 0.6 : 1);
+      let helm = this.inH.p(inT);
+      if (swRpm) helm = helm * (1 - inSw) + this.inH2.p(inT) * inSw;
+      const intake = inG * this.inLP.p(helm * 1.4 + this.inN.p(inNz) * inNoise);
 
       // Mechanik (Ventiltrieb)
       const mechS = mechLvl * 0.25 * (0.3 + 0.7 * rpmN) * this.mechHP.p(mech);
 
       // Turbo / Kompressor
       let aux = 0;
+      // Getriebe-/E-Maschinen-Heulen (geradverzahnte Rennsport-Getriebe, MGU-K)
+      if (wh) {
+        const target = wh.level * 0.03 * rpmN * (overrun ? wh.overrun ?? 1 : 0.35);
+        this.whAmp += (target - this.whAmp) * 0.0005;
+        this.whPh += ((rpm / 60) * wh.order) / sr;
+        if (this.whPh > 1) this.whPh -= 1;
+        aux += this.whAmp * (Math.sin(TAU * this.whPh) + 0.3 * Math.sin(2 * TAU * this.whPh));
+      }
       if (tb) {
         const b = this.boost;
         const f = (tb.f0 + (tb.f1 - tb.f0) * b) * (0.75 + 0.25 * rpmN);

@@ -79,19 +79,24 @@ export class Drivetrain {
         }
       } else {
         this.pendingManual = 0;
-        const loadF = clamp(this.loadRaw, 0, 1);
-        const sport = clamp(0.25 * aggr + 0.75 * loadF * (0.5 + aggr), 0, 1);
-        const upLow = Math.max(e.idle * 2.4, e.redline * 0.3);
+        // Nur die Last, die über die Konstantfahrt hinausgeht, zählt als "sportlich"
+        const dyn = clamp((this.loadRaw - cruise) / Math.max(0.2, 1 - cruise), 0, 1);
+        const sport = clamp(0.2 * aggr + 0.8 * dyn * (0.5 + aggr), 0, 1);
+        const gb = this.g;
+        const upLow = Math.max(e.idle * 2.4, e.redline * (gb.shiftMin ?? 0.3));
         const upRpm = lerp(upLow, e.redline * 0.96, Math.pow(sport, 1.3));
         let downRpm = lerp(Math.max(e.idle * 1.35, e.redline * 0.14), e.redline * 0.5, sport);
-        if (a < -1.2) downRpm = Math.max(downRpm, e.redline * lerp(0.3, 0.45, aggr)); // Bremsen: Zwischengas-Runterschalten
+        const braking = a < -1.2;
+        const bd = gb.brakeDown ?? 0.38;
+        if (braking) downRpm = Math.max(downRpm, e.redline * lerp(bd - 0.08, bd + 0.06, aggr)); // Bremsen: Zwischengas-Runterschalten
         const rpmNow = this.wheelRpm(v, this.gear);
         const since = this.time - this.lastShiftAt;
-        if (this.gear < n && rpmNow > upRpm && since > 0.35 && a > -0.3) {
+        const gap = gb.gap ?? 0.35;
+        if (this.gear < n && rpmNow > upRpm && since > gap && a > -0.3) {
           this.startShift(this.gear + 1, v);
-        } else if (this.gear > 1 && rpmNow < downRpm && since > 0.45) {
+        } else if (this.gear > 1 && rpmNow < downRpm && since > gap + 0.1) {
           const lower = this.wheelRpm(v, this.gear - 1);
-          if (lower < e.redline * 0.9 && lower < upRpm * 0.98) this.startShift(this.gear - 1, v);
+          if (lower < e.redline * 0.92 && (braking || lower < upRpm * 0.98)) this.startShift(this.gear - 1, v);
         } else if (v < 0.3) {
           this.gear = 1;
         }
@@ -123,10 +128,11 @@ export class Drivetrain {
     } else {
       const wr = this.wheelRpm(v, this.gear);
       // Anfahren / Kupplung schleift im 1. Gang
-      const slipRpm = e.idle + target * (e.redline * lerp(0.22, 0.42, aggr) - e.idle);
-      if (this.gear === 1 && wr < slipRpm && v < 12) {
-        const blend = clamp(v / 12, 0, 1);
-        rpmTarget = lerp(Math.max(slipRpm, wr), Math.max(wr, e.idle), blend * blend);
+      const la = this.g.launch ?? 0.42;
+      const slipRpm = e.idle + target * Math.max(0, e.redline * lerp(la * 0.55, la, aggr) - e.idle);
+      if (this.gear === 1 && wr < slipRpm) {
+        // Kupplung schleift, bis die Raddrehzahl die Anfahrdrehzahl erreicht
+        rpmTarget = slipRpm;
       } else {
         rpmTarget = Math.max(wr, e.idle);
       }
