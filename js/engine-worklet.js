@@ -174,7 +174,7 @@ class EngineProcessor extends AudioWorkletProcessor {
     this.popDelay = [0, 0]; this.popAmp = [0, 0]; this.popEnv = [0, 0]; this.popDecay = 0.99;
     this.popLP = [new Biquad(), new Biquad()];
 
-    this.inN = new Biquad(); this.inH = new Biquad(); this.inH2 = new Biquad(); this.inLP = new Biquad();
+    this.inN = new Biquad(); this.inH = new Biquad(); this.inH2 = new Biquad(); this.inH3 = new Biquad(); this.inLP = new Biquad();
     this.mechHP = new Biquad();
     this.tbBP = new Biquad(); this.bovBP = new Biquad(); this.bovBP2 = new Biquad();
     this.dcL = new Biquad(); this.dcR = new Biquad();
@@ -238,7 +238,15 @@ class EngineProcessor extends AudioWorkletProcessor {
     this.tick = new Float32Array(n);
     // feste Zylinder-Individualität (leicht ungleiche Füllung)
     this.cylVar = new Float32Array(n);
-    for (let i = 0; i < n; i++) this.cylVar[i] = 1 + (rnd() - 0.5) * 2 * Math.max(0.06, c.lope || 0);
+    // Deterministische Zylinder-Individualität je Motor (ungleiche Füllung & Krümmergeometrie).
+    // Erzeugt die halben Motorordnungen (z. B. 2,5 / 3,5 beim Boxer), die das "Growl" ausmachen.
+    let sd = (n * 7919 + Math.round(c.pulseW * 100) + Math.round(c.redline)) >>> 0;
+    const lr = () => { sd = (Math.imul(sd, 1664525) + 1013904223) >>> 0; return sd / 4294967296; };
+    this.pwVar = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      this.cylVar[i] = 1 + (lr() - 0.5) * 2 * Math.max(0.06, c.lope || 0, c.cylSpread || 0);
+      this.pwVar[i] = 1 + (lr() - 0.5) * 2 * (c.pwSpread || 0);
+    }
 
     const p = c.pipe;
     for (let b = 0; b < 2; b++) {
@@ -254,6 +262,7 @@ class EngineProcessor extends AudioWorkletProcessor {
     this.inN.bp(c.intake.hz, c.intake.q, sr);
     this.inH.bp(c.intake.helm, 2.5, sr);
     this.inH2.bp(c.intake.helm2 || c.intake.helm, 2.5, sr);
+    this.inH3.bp(c.intake.helm3 || c.intake.helm2 || c.intake.helm, 2.5, sr);
     this.inLP.lp(2600, 0.7, sr);
     this.mechHP.hp(1600, 0.7, sr);
     this.mechLP.lp(5000, 0.7, sr);
@@ -277,8 +286,9 @@ class EngineProcessor extends AudioWorkletProcessor {
     this.applyFlap(this.flap);
     this.bsL.lowshelf(110, this.bassDb, sr); this.bsR.lowshelf(110, this.bassDb, sr);
     const cf = c.cabinHz || 1700;
-    this.cabL.lp(cf, 0.65, sr); this.cabR.lp(cf, 0.65, sr);
-    this.cab2L.lp(cf * 2.4, 0.6, sr); this.cab2R.lp(cf * 2.4, 0.6, sr);
+    // Karosserie: Höhen ab ~cf um 12 dB gedämpft, darüber sanfter Tiefpass (phasenrichtig, ohne Auslöschungen)
+    this.cabL.highshelf(cf * 0.8, -12, sr); this.cabR.highshelf(cf * 0.8, -12, sr);
+    this.cab2L.lp(cf * 3.2, 0.6, sr); this.cab2R.lp(cf * 3.2, 0.6, sr);
     this.trL.highshelf(3500, this.trebleDb, sr); this.trR.highshelf(3500, this.trebleDb, sr);
   }
 
@@ -310,6 +320,8 @@ class EngineProcessor extends AudioWorkletProcessor {
     }
     else a = 0.3 + 0.7 * Math.pow(this.load, 0.85);
     a *= 0.7 + 0.45 * rpmN;
+    // Füllungsgrad: Maximum beim Drehmoment-Gipfel, darüber/darunter etwas weniger Druck je Takt
+    if (c.torqueRpm) { const d = (this.rpm - c.torqueRpm) / c.redline; a *= 1 - 0.45 * d * d; }
     const rough = c.rough * (1 + 2.5 * idleF);
     a *= Math.max(0.2, 1 + rough * gauss());
     a *= 1 + (this.cylVar[i] - 1) * (0.6 + 0.4 * idleF);
@@ -317,7 +329,7 @@ class EngineProcessor extends AudioWorkletProcessor {
     this.pDelay[i] = this.hdr[i];
     this.pAge[i] = 0;
     this.pAmp[i] = a;
-    this.pW[i] = c.pulseW * (overrun || cut ? (c.overrunMode === 'blown' ? 1.5 : 1.35) : 1.15 - 0.35 * this.load);
+    this.pW[i] = c.pulseW * this.pwVar[i] * (overrun || cut ? (c.overrunMode === 'blown' ? 1.5 : 1.35) : 1.15 - 0.35 * this.load);
     this.pOn[i] = 1;
     // Ansaugimpuls
     this.iAge[i] = 0;
@@ -372,16 +384,16 @@ class EngineProcessor extends AudioWorkletProcessor {
     if (Math.abs(this.flap - this.flapApplied) > 0.02) this.applyFlap(this.flap);
 
     // Schaltsaugrohr (z. B. GT3): ab einer Drehzahl andere Resonanz + mehr Ansauggeräusch
+    // bis zu zwei Resonanzklappen -> drei Stufen
     const swRpm = c.intake.switchRpm || 0;
-    if (swRpm) {
-      const x = Math.min(1, Math.max(0, (this.rpm - swRpm) / 600 + 0.5));
-      this.inSw = x * x * (3 - 2 * x);
-    } else this.inSw = 0;
-    const inSw = this.inSw;
-    const inMul = 1 + ((c.intake.level2 || 1) - 1) * inSw;
+    const sw2Rpm = c.intake.switchRpm2 || 0;
+    const step = (r) => { const x = Math.min(1, Math.max(0, (this.rpm - r) / 500 + 0.5)); return x * x * (3 - 2 * x); };
+    const inSw = swRpm ? step(swRpm) : 0;
+    const inSw2 = sw2Rpm ? step(sw2Rpm) : 0;
+    const inMul = (1 + ((c.intake.level2 || 1) - 1) * inSw) * (1 + ((c.intake.level3 || 1) / (c.intake.level2 || 1) - 1) * inSw2);
     const wh = c.whine;
     const inNoise = 1.1 * (c.intake.noise ?? 1);
-    const bodyLvl = 0.9 * (c.body ?? 1);
+    const bodyLvl = -0.9 * (c.body ?? 1);
     const cabin = this.persp !== 'out';
 
     const n = this.n;
@@ -498,7 +510,13 @@ class EngineProcessor extends AudioWorkletProcessor {
       // Ansaugtrakt
       const inG = inLvl * inMul * (0.25 + 0.75 * this.load) * (0.35 + 0.65 * rpmN) * (tb ? 0.6 : 1);
       let helm = this.inH.p(inT);
-      if (swRpm) helm = helm * (1 - inSw) + this.inH2.p(inT) * inSw;
+      if (swRpm) {
+        const h2 = this.inH2.p(inT);
+        if (sw2Rpm) {
+          const h3 = this.inH3.p(inT);
+          helm = helm * (1 - inSw) + (h2 * (1 - inSw2) + h3 * inSw2) * inSw;
+        } else helm = helm * (1 - inSw) + h2 * inSw;
+      }
       const intake = inG * this.inLP.p(helm * 1.4 + this.inN.p(inNz) * inNoise);
 
       // Mechanik (Ventiltrieb)
@@ -549,8 +567,8 @@ class EngineProcessor extends AudioWorkletProcessor {
       let r = (exR + intake + mechS + aux + body) * gain;
       l = this.dcL.p(l); r = this.dcR.p(r);
       if (cabin) {
-        l = l * 0.22 + this.cab2L.p(this.cabL.p(l)) * 0.78;
-        r = r * 0.22 + this.cab2R.p(this.cabR.p(r)) * 0.78;
+        l = this.cab2L.p(this.cabL.p(l));
+        r = this.cab2R.p(this.cabR.p(r));
       }
       l = this.trL.p(this.bsL.p(l));
       r = this.trR.p(this.bsR.p(r));

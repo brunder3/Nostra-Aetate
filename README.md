@@ -12,9 +12,12 @@ Schubphasen. Der Klang wird **live im Browser berechnet**: Es gibt keine Abo-Kos
   - **Formel 1 V8 · 2010–2013**: 2,4-Liter-V8 mit Flachkurbelwelle und 18.000 U/min, Seamless-Shift,
     knatterndes Schubgeräusch („angeblasener Diffusor“), Zwischengas-Kaskaden beim Anbremsen,
     unruhiger Boxen-Leerlauf.
-  - **Porsche 911 GT3 (992)**: 4,0-Liter-Boxer bis 9.000 U/min. Ab ca. 5.800 U/min schaltet das
-    Saugrohr um, dann wird der Ansaugschrei härter. Dazu PDK-Schaltlogik mit Zwischengas und eine
-    automatische Auspuffklappe.
+  - **Porsche 911 GT3 (992)**: 4,0-Liter-Boxer bis 9.000 U/min, nach Porsche-Werksangaben abgestimmt.
+    Dazu gehören die PDK-Übersetzungen 3,75 / 2,38 / 1,72 / 1,34 / 1,11 / 0,96 / 0,84, die Achse 4,19 und
+    der Reifen 315/30 ZR21 hinten. Die Sauganlage hat zwei Resonanzklappen, also drei Klangstufen, und
+    sechs Einzeldrosseln. Das Drehmoment-Maximum liegt bei 6.100 U/min. Den Klang bildet die 3. Ordnung
+    als Grundton, die halben Ordnungen 2,5/3,5 erzeugen das typische „Growl“. Dazu kommen
+    PDK-Zwischengas und eine automatische Auspuffklappe.
   - **Formel 1 V6 Turbo-Hybrid · 2014**: Turbo-Pfeifen, das MGU-H hält den Ladedruck, MGU-K heult beim
     Rekuperieren.
   - **Formel 1 V12 · 1990er**: 3,0-Liter-V12 mit 17.000 U/min.
