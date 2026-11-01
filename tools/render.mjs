@@ -37,10 +37,10 @@ export function render(car, seconds, opts = {}) {
   const p = new Proc();
   const send = (d) => p.msg(d);
   send({ t: 'cfg', car: car.engine });
-  send({ t: 'set', pops: 0.7, valve: true, bass: 3, treble: -2 });
+  send({ t: 'set', pops: 0.7, valve: true, bass: 4, treble: 0, persp: opts.persp || 'cabin' });
   send({ t: 'run', on: true });
   const dtr = new Drivetrain(car);
-  dtr.aggr = opts.aggr ?? 0.7;
+  dtr.aggr = opts.aggr ?? 0.6;
   const demo = new DemoDrive();
   const N = Math.round(seconds * SR);
   const L = new Float32Array(N), R = new Float32Array(N);

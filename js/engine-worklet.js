@@ -146,7 +146,8 @@ class EngineProcessor extends AudioWorkletProcessor {
     this.popsAmt = 0.6;
     this.valve = true;
     this.bassDb = 3;
-    this.trebleDb = -2;
+    this.trebleDb = 0;
+    this.persp = 'cabin';
 
     // Zustände
     this.phase = 0;
@@ -179,6 +180,12 @@ class EngineProcessor extends AudioWorkletProcessor {
     this.dcL = new Biquad(); this.dcR = new Biquad();
     this.bsL = new Biquad(); this.bsR = new Biquad();
     this.trL = new Biquad(); this.trR = new Biquad();
+    // Innenraum-Übertragung (Karosserie dämpft Höhen) + Körperschall-Pfad (Tiefton-"Körper")
+    this.cabL = new Biquad(); this.cabR = new Biquad();
+    this.cab2L = new Biquad(); this.cab2R = new Biquad();
+    this.bodyLP = new Biquad(); this.bodyLP2 = new Biquad();
+    this.raspLP = [new Biquad(), new Biquad()];
+    this.mechLP = new Biquad();
 
     this.port.onmessage = (e) => this.msg(e.data);
   }
@@ -199,6 +206,7 @@ class EngineProcessor extends AudioWorkletProcessor {
         if (d.valve !== undefined) this.valve = d.valve;
         if (d.bass !== undefined) this.bassDb = d.bass;
         if (d.treble !== undefined) this.trebleDb = d.treble;
+        if (d.persp !== undefined) this.persp = d.persp;
         this.updateFilters();
         break;
       case 'cut':
@@ -230,7 +238,7 @@ class EngineProcessor extends AudioWorkletProcessor {
     this.tick = new Float32Array(n);
     // feste Zylinder-Individualität (leicht ungleiche Füllung)
     this.cylVar = new Float32Array(n);
-    for (let i = 0; i < n; i++) this.cylVar[i] = 1 + (rnd() - 0.5) * 2 * (c.lope || 0);
+    for (let i = 0; i < n; i++) this.cylVar[i] = 1 + (rnd() - 0.5) * 2 * Math.max(0.06, c.lope || 0);
 
     const p = c.pipe;
     for (let b = 0; b < 2; b++) {
@@ -238,15 +246,18 @@ class EngineProcessor extends AudioWorkletProcessor {
       this.col[b].set((p.colMs / 1000) * sr * k, p.colFb, p.damp * 1.6, sr);
       this.main[b].set((p.mainMs / 1000) * sr * k, p.mainFb, p.damp, sr);
       this.col[b].clear(); this.main[b].clear();
-      this.nBP[b].bp(2200, 0.7, sr);
+      this.nBP[b].bp(1100, 0.6, sr);
+      this.raspLP[b].lp(2800, 0.6, sr);
       this.popLP[b].lp(3500, 0.7, sr);
       this.mRes[b].peak(c.muffler.resHz * (b ? 1.05 : 1), c.muffler.q, c.muffler.resDb, sr);
     }
     this.inN.bp(c.intake.hz, c.intake.q, sr);
     this.inH.bp(c.intake.helm, 2.5, sr);
     this.inH2.bp(c.intake.helm2 || c.intake.helm, 2.5, sr);
-    this.inLP.lp(4000, 0.7, sr);
-    this.mechHP.hp(2600, 0.7, sr);
+    this.inLP.lp(2600, 0.7, sr);
+    this.mechHP.hp(1600, 0.7, sr);
+    this.mechLP.lp(5000, 0.7, sr);
+    this.bodyLP.lp(170, 0.7, sr); this.bodyLP2.lp(170, 0.7, sr);
     this.tbBP.bp(3200, 0.9, sr);
     this.bovBP.bp(2600, 0.8, sr);
     this.bovBP2.bp(900, 1.2, sr);
@@ -265,6 +276,9 @@ class EngineProcessor extends AudioWorkletProcessor {
     const sr = this.sr;
     this.applyFlap(this.flap);
     this.bsL.lowshelf(110, this.bassDb, sr); this.bsR.lowshelf(110, this.bassDb, sr);
+    const cf = c.cabinHz || 1700;
+    this.cabL.lp(cf, 0.65, sr); this.cabR.lp(cf, 0.65, sr);
+    this.cab2L.lp(cf * 2.4, 0.6, sr); this.cab2R.lp(cf * 2.4, 0.6, sr);
     this.trL.highshelf(3500, this.trebleDb, sr); this.trR.highshelf(3500, this.trebleDb, sr);
   }
 
@@ -298,7 +312,7 @@ class EngineProcessor extends AudioWorkletProcessor {
     a *= 0.7 + 0.45 * rpmN;
     const rough = c.rough * (1 + 2.5 * idleF);
     a *= Math.max(0.2, 1 + rough * gauss());
-    a *= 1 + (this.cylVar[i] - 1) * (0.35 + 0.65 * idleF);
+    a *= 1 + (this.cylVar[i] - 1) * (0.6 + 0.4 * idleF);
     if (a < 0) a = 0;
     this.pDelay[i] = this.hdr[i];
     this.pAge[i] = 0;
@@ -366,7 +380,9 @@ class EngineProcessor extends AudioWorkletProcessor {
     const inSw = this.inSw;
     const inMul = 1 + ((c.intake.level2 || 1) - 1) * inSw;
     const wh = c.whine;
-    const inNoise = 1.8 * (c.intake.noise ?? 1);
+    const inNoise = 1.1 * (c.intake.noise ?? 1);
+    const bodyLvl = 0.9 * (c.body ?? 1);
+    const cabin = this.persp !== 'out';
 
     const n = this.n;
     const cyc = this.cycle;
@@ -463,17 +479,17 @@ class EngineProcessor extends AudioWorkletProcessor {
       // Auspuffstränge
       let ex0, ex1;
       {
-        const x = t0 + noiseAmt * 2.2 * this.nBP[0].p(n0) + pop0 * 1.6;
+        const x = t0 + noiseAmt * 1.3 * this.nBP[0].p(n0) + pop0 * 1.6;
         let y = this.main[0].p(this.col[0].p(x));
         y = this.mRes[0].p(this.mLP2[0].p(this.mLP[0].p(y)));
-        ex0 = y + rasp * (y - this.prevM[0]) * 2.5 + pop0 * 0.35;
+        ex0 = y + rasp * 0.9 * this.raspLP[0].p(y - this.prevM[0]) + pop0 * 0.2;
         this.prevM[0] = y;
       }
       {
-        const x = t1 + noiseAmt * 2.2 * this.nBP[1].p(n1) + pop1 * 1.6;
+        const x = t1 + noiseAmt * 1.3 * this.nBP[1].p(n1) + pop1 * 1.6;
         let y = this.main[1].p(this.col[1].p(x));
         y = this.mRes[1].p(this.mLP2[1].p(this.mLP[1].p(y)));
-        ex1 = y + rasp * (y - this.prevM[1]) * 2.5 + pop1 * 0.35;
+        ex1 = y + rasp * 0.9 * this.raspLP[1].p(y - this.prevM[1]) + pop1 * 0.2;
         this.prevM[1] = y;
       }
       const exL = (ex0 + cross * ex1) * xn * this.exLevel;
@@ -486,7 +502,7 @@ class EngineProcessor extends AudioWorkletProcessor {
       const intake = inG * this.inLP.p(helm * 1.4 + this.inN.p(inNz) * inNoise);
 
       // Mechanik (Ventiltrieb)
-      const mechS = mechLvl * 0.25 * (0.3 + 0.7 * rpmN) * this.mechHP.p(mech);
+      const mechS = mechLvl * 0.12 * (0.3 + 0.7 * rpmN) * this.mechLP.p(this.mechHP.p(mech));
 
       // Turbo / Kompressor
       let aux = 0;
@@ -500,7 +516,7 @@ class EngineProcessor extends AudioWorkletProcessor {
       }
       if (tb) {
         const b = this.boost;
-        const f = (tb.f0 + (tb.f1 - tb.f0) * b) * (0.75 + 0.25 * rpmN);
+        const f = (tb.f0 + (tb.f1 - tb.f0) * b) * (0.75 + 0.25 * rpmN) * 0.7;
         this.turboPh += f / sr; if (this.turboPh > 1) this.turboPh -= 1;
         this.turboPh2 += (f * 1.013) / sr; if (this.turboPh2 > 1) this.turboPh2 -= 1;
         const whistle = (Math.sin(TAU * this.turboPh) + 0.6 * Math.sin(TAU * this.turboPh2)) * b * b * 0.022;
@@ -527,10 +543,17 @@ class EngineProcessor extends AudioWorkletProcessor {
         aux += sc.level * 0.05 * w * (0.25 + 0.75 * this.load) * (0.15 + 0.85 * rpmN);
       }
 
-      let l = (exL + intake + mechS + aux) * gain;
-      let r = (exR + intake + mechS + aux) * gain;
-      l = this.trL.p(this.bsL.p(this.dcL.p(l)));
-      r = this.trR.p(this.bsR.p(this.dcR.p(r)));
+      // Körperschall: tieffrequenter Anteil der Verbrennung (Motorblock/Karosserie)
+      const body = bodyLvl * this.bodyLP2.p(this.bodyLP.p(t0 + t1)) * (0.5 + 0.5 * this.load);
+      let l = (exL + intake + mechS + aux + body) * gain;
+      let r = (exR + intake + mechS + aux + body) * gain;
+      l = this.dcL.p(l); r = this.dcR.p(r);
+      if (cabin) {
+        l = l * 0.22 + this.cab2L.p(this.cabL.p(l)) * 0.78;
+        r = r * 0.22 + this.cab2R.p(this.cabR.p(r)) * 0.78;
+      }
+      l = this.trL.p(this.bsL.p(l));
+      r = this.trR.p(this.bsR.p(r));
       L[s] = softclip(l * this.fade);
       R[s] = softclip(r * this.fade);
     }

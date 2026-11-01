@@ -9,17 +9,19 @@ const STORE = 'motorklang.v1';
 const defaults = {
   carId: 'f1-v8',
   volume: 0.7,
-  aggr: 0.6,
+  aggr: 0.5,
   pops: 0.6,
-  bass: 3,
-  treble: -2,
+  bass: 4,
+  treble: 0,
   valve: true,
   manual: false,
   mph: false,
   src: 'gps',
+  persp: 'cabin',
 };
 let S = { ...defaults };
 try { S = { ...defaults, ...JSON.parse(localStorage.getItem(STORE) || '{}') }; } catch (e) { /* ignorieren */ }
+if (!S.v2) { S.treble = 0; S.bass = 4; S.aggr = 0.5; S.v2 = true; }
 const save = () => { try { localStorage.setItem(STORE, JSON.stringify(S)); } catch (e) { /* ignorieren */ } };
 
 // ---------------------------------------------------------------------------
@@ -146,7 +148,7 @@ async function loadVehicleAudio() {
 }
 
 function pushSettings() {
-  audio.post({ t: 'set', pops: S.pops, valve: S.valve, bass: S.bass, treble: S.treble });
+  audio.post({ t: 'set', pops: S.pops, valve: S.valve, bass: S.bass, treble: S.treble, persp: S.persp });
 }
 
 // ---------------------------------------------------------------------------
@@ -442,6 +444,9 @@ function bindCheck(id, key, after) {
 bindCheck('valve', 'valve', pushSettings);
 bindCheck('manual', 'manual', () => { drive.manual = S.manual; updatePaddles(); });
 bindCheck('mph', 'mph');
+const outside = $('#outside');
+outside.checked = S.persp === 'out';
+outside.addEventListener('change', () => { S.persp = outside.checked ? 'out' : 'cabin'; save(); pushSettings(); });
 
 $('#demoPause').addEventListener('click', () => {
   demoPaused = !demoPaused;

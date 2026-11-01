@@ -7,7 +7,7 @@ const smooth = (t) => t * t * (3 - 2 * t);
 
 export class Drivetrain {
   constructor(car) {
-    this.aggr = 0.6; // 0 = gemütlich, 1 = Rennstrecke
+    this.aggr = 0.5; // 0 = gemütlich, 1 = Rennstrecke
     this.manual = false;
     this.setCar(car);
   }
@@ -56,7 +56,7 @@ export class Drivetrain {
     // Konstantfahrt braucht etwas Last (Roll- & Luftwiderstand), Beschleunigung viel,
     // Verzögerung = Schubabschaltung.
     const cruise = 0.1 + 0.32 * Math.min(1, (v / 45) ** 2);
-    const accScale = lerp(3.2, 1.6, aggr); // m/s² für Volllast
+    const accScale = lerp(4.6, 2.4, aggr); // m/s² für Volllast (normales Fahren ~1–2 m/s²)
     let target;
     if (a > 0.12) target = cruise + (a - 0.12) / accScale;
     else if (a < -0.35) target = 0;
@@ -81,7 +81,7 @@ export class Drivetrain {
         this.pendingManual = 0;
         // Nur die Last, die über die Konstantfahrt hinausgeht, zählt als "sportlich"
         const dyn = clamp((this.loadRaw - cruise) / Math.max(0.2, 1 - cruise), 0, 1);
-        const sport = clamp(0.2 * aggr + 0.8 * dyn * (0.5 + aggr), 0, 1);
+        const sport = clamp(0.2 * aggr + 0.8 * Math.pow(dyn, 1.5) * (0.5 + aggr), 0, 1);
         const gb = this.g;
         const upLow = Math.max(e.idle * 2.4, e.redline * (gb.shiftMin ?? 0.3));
         const upRpm = lerp(upLow, e.redline * 0.96, Math.pow(sport, 1.3));
